@@ -60,19 +60,24 @@ func downloadJSFile(urls []string, concurrency int) {
 
 func parseFile(req *http.Request, resp *http.Response, err error) {
 	if err != nil {
+		log.Printf("Error: %v", err)
 		return
 	}
-	body, err := io.ReadAll(resp.Body)
+
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("Recovered in main:", err)
+		}
+	}()
+
+	// Stream response instead of reading it all into memory
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20)) // Limit to 1MB
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error reading stream: %v", err)
+		return
 	}
 
-	// if you like it beautiful
-	//options := jsbeautifier.DefaultOptions()
-	//code := jsbeautifier.BeautifyFile(string(fileBytes), options)
-
 	matchAndAdd(string(body))
-
 }
 
 func extractUrlFromJS(urls []string, baseUrl string) []string {
